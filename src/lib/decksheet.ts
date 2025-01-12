@@ -40,17 +40,34 @@ function drawText(
 	placement: Placement,
 	text: string
 ): void {
+	const canvasWidth = canvasContext.canvas.width;
 	const canvasHeight = canvasContext.canvas.height;
+	const baseX = placement.relativeX * canvasWidth;
+	const baseY = placement.relativeY * canvasHeight;
+	const maxFontHeight = placement.maxFontRelativeHeight * canvasHeight;
+	const frameLimitWidth = placement.frameLimitRelativeWidth * canvasWidth;
+
 	canvasContext.save();
-	canvasContext.font = `${placement.fontSize * canvasHeight}px sans-serif`;
-	canvasContext.fillText(text, placement.x * canvasHeight, placement.y * canvasHeight);
+
+	// 枠をはみ出す場合は入るようにフォントサイズを下げる
+	canvasContext.font = `${maxFontHeight}px sans-serif`;
+	const maxTextMetrics = canvasContext.measureText(text);
+	const scaledFontHeight = maxFontHeight / Math.max(1.0, maxTextMetrics.width / frameLimitWidth);
+
+	canvasContext.font = `${scaledFontHeight}px sans-serif`;
+	canvasContext.textAlign = placement.alignment;
+	canvasContext.textBaseline = 'middle';
+	canvasContext.fillText(text, baseX, baseY);
+
 	canvasContext.restore();
 }
 
 interface Placement {
-	x: number;
-	y: number;
-	fontSize: number;
+	relativeX: number;
+	relativeY: number;
+	maxFontRelativeHeight: number;
+	frameLimitRelativeWidth: number;
+	alignment: CanvasTextAlign;
 }
 
 interface SignaturePlacement {
@@ -60,7 +77,25 @@ interface SignaturePlacement {
 }
 
 const ORIGINAL_PLACEMENT = {
-	playerId: { x: 0.02, y: 0.91, fontSize: 0.045 },
-	playerName: { x: 0.29, y: 0.903, fontSize: 0.0375 },
-	playerReading: { x: 0.29, y: 0.855, fontSize: 0.017 }
+	playerId: {
+		relativeX: 0.156,
+		relativeY: 0.898,
+		maxFontRelativeHeight: 0.045,
+		frameLimitRelativeWidth: 0.29,
+		alignment: 'center'
+	},
+	playerName: {
+		relativeX: 0.40,
+		relativeY: 0.895,
+		maxFontRelativeHeight: 0.03,
+		frameLimitRelativeWidth: 0.4,
+		alignment: 'start'
+	},
+	playerReading: {
+		relativeX: 0.40,
+		relativeY: 0.85,
+		maxFontRelativeHeight: 0.017,
+		frameLimitRelativeWidth: 0.4,
+		alignment: 'start'
+	}
 } satisfies SignaturePlacement;
