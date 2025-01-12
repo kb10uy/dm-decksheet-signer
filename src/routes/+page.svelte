@@ -1,42 +1,39 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import * as PDFjs from 'pdfjs-dist';
+
 	import { drawDeckSheet, type Signature } from '$lib/decksheet';
+	import { Heading, Dropzone } from 'flowbite-svelte';
 
-	PDFjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${PDFjs.version}/build/pdf.worker.min.mjs`;
-
-	let file: File;
-	let pngData: string | null = null;
+	let files: File[] = [];
 	let pdfCanvas: HTMLCanvasElement;
-	let canvasContext: CanvasRenderingContext2D;
 
 	onMount(() => {
 		pdfCanvas = document.querySelector('#pdfCanvas') as HTMLCanvasElement;
-		canvasContext = pdfCanvas.getContext('2d')!;
 	});
 
-	function onUploadChange(e: Event): void {
-		const target = e.target as HTMLInputElement;
-		if (target.files !== null && target.files.length > 0) {
-			file = target.files[0];
-		}
+	function onDropzoneDropped(event: DragEvent): void {
+		event.preventDefault();
+		if (!event.dataTransfer || !event.dataTransfer.items) return;
+
+		files = [...event.dataTransfer.files];
+	}
+
+	function onDropzoneDragover(event: DragEvent): void {
+		event.preventDefault();
+	}
+
+	function onDropzoneChanged(event: Event): void {
+		const target = event.target as HTMLInputElement;
+		const inputFiles = target.files!;
+		if (inputFiles.length == 0) return;
+
+		files = [...files, inputFiles[0]];
 	}
 
 	async function handleFileUpload(): Promise<void> {
-		if (!file) return;
+		if (!files) return;
 
-		const bytes = await file.bytes();
-		const pdf = await PDFjs.getDocument(bytes).promise;
-		const pdfPage = await pdf.getPage(1);
-
-		const viewport = pdfPage.getViewport({ scale: 4 });
-
-		pdfCanvas.width = viewport.width;
-		pdfCanvas.height = viewport.height;
-
-		await pdfPage.render({ canvasContext, viewport }).promise;
-
-		drawDeckSheet(canvasContext, {
+		drawDeckSheet(pdfCanvas, files[0], {
 			playerId: '118156',
 			playerName: '/*詩結*/',
 			playerReading: 'しゆ'
@@ -45,33 +42,39 @@
 </script>
 
 <svelte:head>
-	<title>Home</title>
-	<meta name="description" content="Svelte demo app" />
+	<title>DM Deck-sheet Signer</title>
+	<meta name="description" content="デュエマのデッキシートに名前とか入れるやつ" />
 </svelte:head>
 
-<section class="contgainer mx-auto">
-	<div class="container mx-auto px-4">
-		<label class="mb-2 block text-sm font-medium text-gray-900 dark:text-white" for="pdfFile"
-			>Upload file</label
+<header class="text-center">
+	<Heading tag="h1" class="mb-4 py-4" customSize="text-3xl font-bold md:text-4xl lg:text-5xl"
+		>DM Deck-sheet Signer</Heading
+	>
+</header>
+<main>
+	<section class="container mx-auto">
+		<Dropzone
+			id="dropzone"
+			on:drop={onDropzoneDropped}
+			on:dragover={onDropzoneDragover}
+			on:change={onDropzoneChanged}
 		>
-		<input
-			class="block w-full cursor-pointer rounded-lg border border-gray-300 bg-gray-50 text-sm text-gray-900 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 dark:placeholder-gray-400"
-			id="pdfFile"
-			name="pdfFile"
-			type="file"
-            on:change={onUploadChange}
-		/>
-	</div>
-	<button on:click={handleFileUpload}>Convert to PNG</button>
+			{#if files.length === 0}
+				<p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
+					<span class="font-semibold">Click to upload</span> or drag and drop
+				</p>
+				<p class="text-xs text-gray-500 dark:text-gray-400">
+					SVG, PNG, JPG or GIF (MAX. 800x400px)
+				</p>
+			{:else}
+				<p>OK</p>
+			{/if}
+		</Dropzone>
+		<button on:click={handleFileUpload}>Convert to PNG</button>
+	</section>
 
 	<canvas id="pdfCanvas"></canvas>
-
-	{#if pngData}
-		<h2>Converted PNG:</h2>
-		<img src={pngData} alt="Converted PNG" />
-		<a href={pngData} download="page.png">Download PNG</a>
-	{/if}
-</section>
+</main>
 
 <style>
 	canvas#pdfCanvas {

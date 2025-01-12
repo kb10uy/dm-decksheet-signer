@@ -1,35 +1,11 @@
 <script lang="ts">
 	import '../app.css';
+	import { DarkMode } from 'flowbite-svelte';
+	let darkmodebtn =
+		'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-lg p-2.5 fixed right-4 top-2 z-50';
 
 	let { children } = $props();
 </script>
 
-<div class="app">
-    <header>
-        <nav>
-            <h1>DM Deck-sheet Signer</h1>
-        </nav>
-    </header>
-	<main>
-		{@render children()}
-	</main>
-</div>
-
-<style>
-	.app {
-		display: flex;
-		flex-direction: column;
-		min-height: 100vh;
-	}
-
-	main {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		padding: 1rem;
-		width: 100%;
-		max-width: 64rem;
-		margin: 0 auto;
-		box-sizing: border-box;
-	}
-</style>
+<DarkMode btnClass={darkmodebtn} />
+{@render children()}
