@@ -1,6 +1,8 @@
 import * as PDFjs from 'pdfjs-dist';
 PDFjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${PDFjs.version}/build/pdf.worker.min.mjs`;
 
+export type DeckSheetFormat = 'original' | 'advance';
+
 export interface Signature {
 	playerId: string;
 	playerName: string;
@@ -10,6 +12,7 @@ export interface Signature {
 export async function drawDeckSheet(
 	pdfCanvas: HTMLCanvasElement,
 	pdfFile: File,
+	format: DeckSheetFormat,
 	signature: Signature
 ): Promise<void> {
 	const bytes = await pdfFile.arrayBuffer();
@@ -17,22 +20,22 @@ export async function drawDeckSheet(
 	const pdfPage = await pdf.getPage(1);
 
 	const viewport = pdfPage.getViewport({ scale: 4 });
-
 	pdfCanvas.width = viewport.width;
 	pdfCanvas.height = viewport.height;
 
 	const canvasContext = pdfCanvas.getContext('2d')!;
 	await pdfPage.render({ canvasContext, viewport }).promise;
-	drawDeckSheetSignature(canvasContext, signature);
+	drawDeckSheetSignature(canvasContext, SIGNATURE_PLACEMENTS[format], signature);
 }
 
 function drawDeckSheetSignature(
 	canvasContext: CanvasRenderingContext2D,
+	signaturePlacement: SignaturePlacement,
 	signature: Signature
 ): void {
-	drawText(canvasContext, ORIGINAL_PLACEMENT.playerId, signature.playerId);
-	drawText(canvasContext, ORIGINAL_PLACEMENT.playerName, signature.playerName);
-	drawText(canvasContext, ORIGINAL_PLACEMENT.playerReading, signature.playerReading);
+	drawText(canvasContext, signaturePlacement.playerId, signature.playerId);
+	drawText(canvasContext, signaturePlacement.playerName, signature.playerName);
+	drawText(canvasContext, signaturePlacement.playerReading, signature.playerReading);
 }
 
 function drawText(
@@ -76,26 +79,51 @@ interface SignaturePlacement {
 	playerReading: Placement;
 }
 
-const ORIGINAL_PLACEMENT = {
-	playerId: {
-		relativeX: 0.156,
-		relativeY: 0.898,
-		maxFontRelativeHeight: 0.045,
-		frameLimitRelativeWidth: 0.29,
-		alignment: 'center'
+const SIGNATURE_PLACEMENTS = {
+	original: {
+		playerId: {
+			relativeX: 0.156,
+			relativeY: 0.898,
+			maxFontRelativeHeight: 0.045,
+			frameLimitRelativeWidth: 0.29,
+			alignment: 'center'
+		},
+		playerName: {
+			relativeX: 0.4,
+			relativeY: 0.895,
+			maxFontRelativeHeight: 0.03,
+			frameLimitRelativeWidth: 0.4,
+			alignment: 'start'
+		},
+		playerReading: {
+			relativeX: 0.4,
+			relativeY: 0.85,
+			maxFontRelativeHeight: 0.017,
+			frameLimitRelativeWidth: 0.4,
+			alignment: 'start'
+		}
 	},
-	playerName: {
-		relativeX: 0.40,
-		relativeY: 0.895,
-		maxFontRelativeHeight: 0.03,
-		frameLimitRelativeWidth: 0.4,
-		alignment: 'start'
-	},
-	playerReading: {
-		relativeX: 0.40,
-		relativeY: 0.85,
-		maxFontRelativeHeight: 0.017,
-		frameLimitRelativeWidth: 0.4,
-		alignment: 'start'
+	advance: {
+		playerId: {
+			relativeX: 0.168,
+			relativeY: 0.905,
+			maxFontRelativeHeight: 0.045,
+			frameLimitRelativeWidth: 0.29,
+			alignment: 'center'
+		},
+		playerName: {
+			relativeX: 0.411,
+			relativeY: 0.9,
+			maxFontRelativeHeight: 0.03,
+			frameLimitRelativeWidth: 0.4,
+			alignment: 'start'
+		},
+		playerReading: {
+			relativeX: 0.411,
+			relativeY: 0.863,
+			maxFontRelativeHeight: 0.014,
+			frameLimitRelativeWidth: 0.4,
+			alignment: 'start'
+		}
 	}
-} satisfies SignaturePlacement;
+} satisfies { [K in DeckSheetFormat]: SignaturePlacement };

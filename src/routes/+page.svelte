@@ -1,13 +1,18 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
-	import { Heading, Dropzone, Label, Input, GradientButton } from 'flowbite-svelte';
+	import { Heading, Dropzone, Label, Input, GradientButton, Select } from 'flowbite-svelte';
 
-	import { drawDeckSheet, type Signature } from '$lib/decksheet';
+	import { drawDeckSheet, type DeckSheetFormat, type Signature } from '$lib/decksheet';
 	import { playerPreference } from '$lib/persistence';
 
 	let file: File | null = null;
 	let pdfCanvas: HTMLCanvasElement;
+	let format: DeckSheetFormat = 'original';
+	let formatItems = [
+		{ value: 'original', name: 'オリジナル' },
+		{ value: 'advance', name: 'アドバンス' }
+	];
 
 	onMount(() => {
 		pdfCanvas = document.querySelector('#pdfCanvas') as HTMLCanvasElement;
@@ -51,7 +56,7 @@
 		if (!file) return;
 
 		const pp = get(playerPreference);
-		await drawDeckSheet(pdfCanvas, file, {
+		await drawDeckSheet(pdfCanvas, file, format, {
 			playerId: pp.id,
 			playerName: pp.name,
 			playerReading: pp.reading
@@ -104,25 +109,32 @@
 				/>
 			</div>
 		</div>
-		<Dropzone
-			id="dropzone"
-			class="my-6 h-20"
-			accept="application/pdf"
-			on:drop={onDropzoneDropped}
-			on:dragover={onDropzoneDragover}
-			on:change={onDropzoneChanged}
-		>
-			{#if file}
-				<p class="text-gray-500 dark:text-gray-400">{file.name}</p>
-			{:else}
-				<p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
-					デッキシートの PDF ファイルをアップロード
-				</p>
-				<p class="text-xs text-gray-500 dark:text-gray-400">
-					ここをクリックするかドラッグ&ドロップ
-				</p>
-			{/if}
-		</Dropzone>
+		<div class="my-8">
+			<Dropzone
+				id="dropzone"
+				class="h-20"
+				accept="application/pdf"
+				on:drop={onDropzoneDropped}
+				on:dragover={onDropzoneDragover}
+				on:change={onDropzoneChanged}
+			>
+				{#if file}
+					<p class="text-gray-500 dark:text-gray-400">{file.name}</p>
+				{:else}
+					<p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
+						デッキシートの PDF ファイルをアップロード
+					</p>
+					<p class="text-xs text-gray-500 dark:text-gray-400">
+						ここをクリックするかドラッグ&ドロップ
+					</p>
+				{/if}
+			</Dropzone>
+			<div class="my-2">
+				<Label for="format" class="mb-1">デッキシートのフォーマット</Label>
+				<Select id="format" items={formatItems} bind:value={format} />
+			</div>
+		</div>
+
 		<GradientButton class="w-full" color="cyanToBlue" on:click={generateAndDownload}>
 			生成してダウンロード
 		</GradientButton>
