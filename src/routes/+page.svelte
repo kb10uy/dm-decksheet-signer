@@ -44,7 +44,6 @@
 		downloadLink.download = `${file!.name}-${get(playerPreference).id}.png`;
 		downloadLink.click();
 
-		document.removeChild(downloadLink);
 		URL.revokeObjectURL(blobUrl);
 	}
 
