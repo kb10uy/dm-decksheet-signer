@@ -12,7 +12,7 @@ export async function drawDeckSheet(
 	pdfFile: File,
 	signature: Signature
 ): Promise<void> {
-	const bytes = await pdfFile.bytes();
+	const bytes = await pdfFile.arrayBuffer();
 	const pdf = await PDFjs.getDocument(bytes).promise;
 	const pdfPage = await pdf.getPage(1);
 
