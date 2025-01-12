@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
+	import { Heading, Dropzone, Label, Input, GradientButton } from 'flowbite-svelte';
 
 	import { drawDeckSheet, type Signature } from '$lib/decksheet';
-	import { Heading, Dropzone } from 'flowbite-svelte';
+	import { playerPreference } from '$lib/persistence';
 
-	let files: File[] = [];
+	let file: File | null = null;
 	let pdfCanvas: HTMLCanvasElement;
 
 	onMount(() => {
@@ -15,7 +17,7 @@
 		event.preventDefault();
 		if (!event.dataTransfer || !event.dataTransfer.items) return;
 
-		files = [...event.dataTransfer.files];
+		file = event.dataTransfer.files[0];
 	}
 
 	function onDropzoneDragover(event: DragEvent): void {
@@ -27,17 +29,36 @@
 		const inputFiles = target.files!;
 		if (inputFiles.length == 0) return;
 
-		files = [...files, inputFiles[0]];
+		file = inputFiles[0];
 	}
 
-	async function handleFileUpload(): Promise<void> {
-		if (!files) return;
+	function onCanvasBlobGenerated(blob: Blob | null): void {
+		if (!blob) {
+			alert('画像を生成できませんでした');
+			return;
+		}
 
-		drawDeckSheet(pdfCanvas, files[0], {
-			playerId: '118156',
-			playerName: '/*詩結*/',
-			playerReading: 'しゆ'
+		const blobUrl = URL.createObjectURL(blob);
+		const downloadLink = document.createElement('a');
+		downloadLink.href = blobUrl;
+		downloadLink.download = `${file!.name}-${get(playerPreference).id}.png`;
+		downloadLink.click();
+
+		document.removeChild(downloadLink);
+		URL.revokeObjectURL(blobUrl);
+	}
+
+	async function generateAndDownload(): Promise<void> {
+		if (!file) return;
+
+		const pp = get(playerPreference);
+		await drawDeckSheet(pdfCanvas, file, {
+			playerId: pp.id,
+			playerName: pp.name,
+			playerReading: pp.reading
 		} satisfies Signature);
+
+		pdfCanvas.toBlob(onCanvasBlobGenerated);
 	}
 </script>
 
@@ -52,33 +73,66 @@
 	>
 </header>
 <main>
-	<section class="container mx-auto">
+	<section class="container mx-auto px-4">
+		<div class="grid grid-cols-2 gap-4">
+			<div class="col-span-2">
+				<Label for="playerId" class="mb-1">プレイヤー ID</Label>
+				<Input
+					size="lg"
+					type="text"
+					inputmode="numeric"
+					id="playerId"
+					placeholder="999999"
+					bind:value={$playerPreference.id}
+				/>
+			</div>
+			<div class="col-span-2 md:col-span-1">
+				<Label for="playerName" class="mb-1">プレイヤー名</Label>
+				<Input
+					type="text"
+					id="playerName"
+					placeholder="正義星帝"
+					bind:value={$playerPreference.name}
+				/>
+			</div>
+			<div class="col-span-2 md:col-span-1">
+				<Label for="playerReading" class="mb-1">プレイヤー名 読み</Label>
+				<Input
+					type="text"
+					id="playerReading"
+					placeholder="スティルジャスティス・ティルジエンド"
+					bind:value={$playerPreference.reading}
+				/>
+			</div>
+		</div>
 		<Dropzone
 			id="dropzone"
+			class="my-6 h-20"
+			accept="application/pdf"
 			on:drop={onDropzoneDropped}
 			on:dragover={onDropzoneDragover}
 			on:change={onDropzoneChanged}
 		>
-			{#if files.length === 0}
+			{#if file}
+				<p class="text-gray-500 dark:text-gray-400">{file.name}</p>
+			{:else}
 				<p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
-					<span class="font-semibold">Click to upload</span> or drag and drop
+					デッキシートの PDF ファイルをアップロード
 				</p>
 				<p class="text-xs text-gray-500 dark:text-gray-400">
-					SVG, PNG, JPG or GIF (MAX. 800x400px)
+					ここをクリックするかドラッグ&ドロップ
 				</p>
-			{:else}
-				<p>OK</p>
 			{/if}
 		</Dropzone>
-		<button on:click={handleFileUpload}>Convert to PNG</button>
+		<GradientButton class="w-full" color="cyanToBlue" on:click={generateAndDownload}>
+			生成してダウンロード
+		</GradientButton>
 	</section>
 
-	<canvas id="pdfCanvas"></canvas>
+	<section class="container mx-auto my-8 px-4">
+		<canvas id="pdfCanvas" class="w-full"></canvas>
+	</section>
 </main>
 
 <style>
-	canvas#pdfCanvas {
-		width: 600px;
-		max-width: 100%;
-	}
 </style>
